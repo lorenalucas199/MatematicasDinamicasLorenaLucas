@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matemáticas Dinámicas</title>
+<link rel="stylesheet" href="miestilo.css">
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        processEscapes: true
+      }
+    });
+    MathJax.Hub.Config({
+      TeX: {
+        Macros: {
+          R: "{\\mathbb R}",
+          N: "{\\mathbb N}",
+          Z: "{\\mathbb Z}",
+          bold: ["{\\bf #1}",1]
+        }
+      }
+    });
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } }
+    });
+    TeX: {
+      extensions: ["AMSmath.js", "AMSsymbols.js", "color.js"]
+    }
+</script>
+    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS_HTML' async></script>
+<script src='https://algebra.js.org/javascripts/algebra-0.2.6.min.js' ></script>     
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.1/math.js"></script>
+    
+<body style="font-family:'Rubik', sans-serif; font-size:18; background: linear-gradient(to bottom, #D9735A, #F6D8C8); text-align:center;">
+    <h1>¿Qué es la continuidad de una función?</h1>
+    <h3>de Lorena Lucas Baños</h3>
+    Una función $f(x)$ es <strong>continua en un punto $\;x=a\;$</strong> si:<br>
+    $\lim_{x \to a^-} f(x) = \lim_{x \to a^+} f(x) = f(a)$<br>
+    Es decir, no hay "saltos" ni "agujeros" en la gráfica.
+    <br><br>
+    En esta web, podrás comprobar si una función es continua en el punto que indiques o en cualquier valor de abcisas donde coloques el ratón. <br>
+    Escribe una función $f(x)$ (en JavaScript):
+    <input type="text" id="funcionintro" value="x**2"><br>
+    Indica el punto donde quieres saber si es continua: $x=$
+    <input type="text" id="puntocont" value="1">
+    <br><br>
+    <button onclick="graficar()">Graficar</button>
+    <button onclick="zoomIn()"> + </button>
+    <button onclick="zoomOut()"> - </button>
+    <br><br>
+    <canvas id="canvas" width="600" height="400" class="recuadro" onmousemove="graficar(event)"></canvas> 
+    
+    <p id="mensajeContinuidad"></p> <br>
+
+    Además, esta función será derivable cuando existan las dos derivadas laterales y coincidan. Es decir:<br>
+    $f'(x_0^-)=\lim_{h\to 0^-}\frac{f(x_0+h)-f(x_0)}{h}= \lim_{h\to 0^+}\frac{f(x_0+h)-f(x_0)}{h}=f'(x_0^+)$
+    <br><br>
+    <p id="mensajeDerivabilidad"></p><br>
+    ¿Puedes comprobar que una función que no es continua en un punto, no será derivable en el mismo? Pero el recíproco (que no sea derivable pero sí continua) sí puede ocurrir. ¡Busca un ejemplo!
+    
+
+    
+    <script> //Vamos a definir lo que se realiza en el interior del canvas:
+    var c=document.getElementById("canvas");
+    var ctx=c.getContext("2d");
+    let zoom=40;
+
+    //Funciones para transformar los pares de datos entre los píxeles del canva y un eje de coordenadas centrado en el medio del canvas (la coordenada (c.width/2,c.height/2)):
+    function transformarX(x){ //de coordenada a píxeles
+        return c.width/2 + x*zoom; //el centro del canvas MÁS la coordenada x ("agrandada"), porque la x crece hacia la DERECHA
+    }
+    function transformarY(y){ //de coordenada a píxeles
+        return c.height/2 - y*zoom;  //el centro MENOS la coordenada y ("agrandada"), porque la y crece hacia ABAJO (aumentan los pixeles cuando la y disminuye)
+    }
+    function convertirX(pixeles){ //de píxeles a coordenada
+        return (pixeles-c.width/2)/zoom; //cada zoom es una unidad de la gráfica. Ej: pixeles=500 a zoom, lo centra segun los ejes del canvas, se divide entre el zoom para saber la unidad y se quita el desplazamiento que se haga
+    } 
+
+        
+    //Función graficar todo   
+    function graficar(event){
+      ctx.clearRect(0, 0, c.width, c.height); //limpiar
+      dibujarEjes();
+
+      //Obtener la función introducida por el usuario
+      function f(x){ 
+          return eval(document.getElementById("funcionintro").value) 
+      }
+
+      //El punto lo podemos obtener de dos formas:
+      let punto;
+      if (event){ //Si se ocurre un evento (pasa el ratón sobre el canvas), usar la posición de abcisas del ratón
+          var coordCanvas=c.getBoundingClientRect();
+          punto=convertirX(event.clientX - coordCanvas.left);
+      }else{
+        //Si no hay evento (click en botón graficar), usar el valor de la entrada
+        punto=parseFloat(document.getElementById("puntocont").value);
+      }
+
+      //Redondearlo a trabajar con 2 decimales 
+      punto=Math.round(punto*10)/10;
+
+      dibujarPunto(f,punto);
+      dibujarFuncion(f);
+      comprobarContinuidad(f, punto); 
+      comprobarDerivabilidad(f,punto);
+    }
+    
+    
+    //Función dibujar los ejes y la escala
+    function dibujarEjes(){
+      ctx.strokeStyle="black";
+      ctx.beginPath();
+      ctx.moveTo(0,transformarY(0)); //Eje X
+      ctx.lineTo(c.width,transformarY(0)); //hasta el final del canvas (horizontal)
+      ctx.moveTo(transformarX(0),0); //Eje Y
+      ctx.lineTo(transformarX(0),c.height); //hasta el final del canvas (vertical)
+      ctx.stroke();
+        
+      //Dibujar números en el eje X (como etiquetas)
+      ctx.fillStyle="black";
+      ctx.font="12px Arial";
+      for(let x=-10; x<=10; x++){
+          let px=transformarX(x);
+          ctx.fillText(x, px, transformarY(0)-5); //el número x en el píxel px (x transformado) y por encima del eje (menos 5 píxeles)
+      }
+
+      // Dibujar números en el eje Y (como etiquetas)
+      for(let y=-5; y<=5; y++){
+          if(y!=0){ //el 0 ya lo hemos dibujado arriba
+              let py = transformarY(y);
+              ctx.fillText(y, transformarX(0)+5, py); //el número y en el píxel py (y transformado) y a la derecha del eje (más 5 píxeles)
+          }
+      }
+    }
+
+    //Dibujar el punto donde se está estudiando la continuidad (y se estudiará la derivabilidad)    
+    function dibujarPunto(f,x){
+        let y=f(x);
+        ctx.beginPath();
+        ctx.arc(transformarX(x),transformarY(y),5,0,2*Math.PI);
+        ctx.fillStyle="red";
+        ctx.fill(); 
+    }
+
+    
+    //Dibujar la función en azul
+    function dibujarFuncion(f){
+        ctx.strokeStyle="blue";
+        ctx.beginPath();
+        let x=convertirX(0);
+        for(x; x<convertirX(c.width); x+=0.05){
+            let y=f(x);
+            ctx.lineTo(transformarX(x),transformarY(y));
+        }
+        ctx.stroke();
+    }
+
+        
+    //Función para comprobar la continuidad y poner el mensaje
+    function comprobarContinuidad(f, a){
+        let mensaje=document.getElementById("mensajeContinuidad");
+        
+        //Constantes para comprobar la continuidad:
+        let izquierda=f(a-0.00001);
+        let derecha=f(a+0.00001);
+        let valor=f(a);
+        let tolerancia=0.01; 
+
+        //Será continua cuando los dos límites son iguales o que la diferencia sea 0 (aquí menor que la tolerancia indicada) e igual que la imagen del punto (menor que la tolerancia)
+        let continua=Math.abs(izquierda-derecha)<tolerancia && Math.abs(valor-izquierda)<tolerancia;
+        if (continua){
+            mensaje.innerText="La función es continua en x = "+a+".\n";
+            mensaje.style.color="green";
+            mensaje.style.fontWeight="bold";
+        }else{
+            mensaje.innerText="La función NO es continua en x = " +a+".\n";
+            mensaje.style.color="red";
+            mensaje.style.fontWeight="bold";
+
+        }
+    }
+
+
+    //Función derivada
+    function derivada(f,x,h){ 
+        return (f(x+h)-f(x))/h; 
+    }
+
+    //Función para comprobar la derivabilidad y poner el mensaje
+    function comprobarDerivabilidad(f,a){
+        let mensaje=document.getElementById("mensajeDerivabilidad");
+
+        //Constantes para comprobar la derivabilidad:
+        let izquierda=derivada(f,a,h=- 0.0001);
+        let derecha=derivada(f,a,h=0.0001);
+        let tolerancia = 0.01;
+
+        //Será derivable cuando las dos derivadas laterales son iguales o que la diferencia sea 0 (menor que la tolerancia indicada)
+        if (Math.abs(izquierda-derecha)<tolerancia){
+            mensaje.innerText="La función es derivable en x = "+a+".\n";
+            mensaje.style.color="green";
+            mensaje.style.fontWeight="bold";
+        }else{
+            mensaje.innerText="La función NO es derivable en x = " +a+".\n";
+            mensaje.style.color="red";
+            mensaje.style.fontWeight="bold";
+
+        }
+    }
+
+    //Funciones de zoom para la gráfica:
+    function zoomIn(){ 
+        zoom=zomm*1.2; 
+        graficar(); 
+    }
+    function zoomOut(){ 
+        zoom=zoom/1.2; 
+        graficar(); 
+    }
+        
+  </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matemáticas Dinámicas</title>
+<link rel="stylesheet" href="miestilo.css">
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        processEscapes: true
+      }
+    });
+    MathJax.Hub.Config({
+      TeX: {
+        Macros: {
+          R: "{\\mathbb R}",
+          N: "{\\mathbb N}",
+          Z: "{\\mathbb Z}",
+          bold: ["{\\bf #1}",1]
+        }
+      }
+    });
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } }
+    });
+    TeX: {
+      extensions: ["AMSmath.js", "AMSsymbols.js", "color.js"]
+    }
+</script>
+    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS_HTML' async></script>
+<script src='https://algebra.js.org/javascripts/algebra-0.2.6.min.js' ></script>     
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.1/math.js"></script>
+    
+<body style="font-family:'Rubik', sans-serif; font-size:18; background: linear-gradient(to bottom, #D9735A, #F6D8C8); height:100vh; text-align:center;">
+    <h1>Intersección de dos rectas</h1>
+    <h3>de Lorena Lucas Baños</h3>
+    Define dos rectas a partir de tus clicks en el siguiente espacio. A continuación, se mostrará el punto de intersección entre ambas:
+    <br><br>
+    <canvas id="canvas" width="600" height="400" class="recuadro"  onclick="coordenadas(event)"></canvas>
+    
+    <script> //Vamos a definir lo que se realiza en el interior del canvas:
+        var c=document.getElementById("canvas");
+        var ctx=c.getContext("2d");
+        var Fraction=math.fraction; //abreviaciones
+        var Fraction2=algebra.Fraction;
+        var Expression=algebra.Expression;
+        var Equation=algebra.Equation;
+        
+        //Definir la función para obtener las coordenadas de cada click dentro del canvas:
+        let puntos=[]; //para almacenarlos
+        function coordenadas(event){
+            let coordCanvas=c.getBoundingClientRect(); //posición del canvas en la pantalla          
+            let x=event.clientX-coordCanvas.x; //coordenada X en el canvas
+            let y=event.clientY-coordCanvas.y; //coordenada Y en el canvas
+            puntos.push({x,y}) //añadir nuevo punto a la lista
+            var punto={x, y};
+            
+            dibujarPunto(x,y); //dibuja ese punto
+
+            if(puntos.length==2){ //cuando haya 2 puntos, dibujar una recta
+                dibujarRecta(puntos[0],puntos[1]);
+            }
+            
+            if(puntos.length==4) { //cuando haya 4 puntos dibujar la otra recta y la interseccion
+                dibujarRecta(puntos[2], puntos[3]);
+
+                let intersec=Interseccion(puntos[0],puntos[1],puntos[2],puntos[3]);          
+                dibujarInterseccion(intersec.x,intersec.y);
+            }
+            
+            if(puntos.length==5){ //cuando haya cinco, comenzar con una nueva intersección de rectas
+                ctx.clearRect(0,0,c.width,c.height); //borrar todo el dibujo
+                dibujarPunto(puntos[4].x,puntos[4].y);
+                puntos=[puntos[4]]; //vaciar la lista y dejar solo este último punto
+            }
+        }
+
+        
+        function dibujarPunto(x,y){
+            ctx.fillStyle="black"
+            ctx.beginPath();
+            ctx.arc(x,y, 4, 0, 2*Math.PI);
+            ctx.fill();
+        }
+
+        function dibujarRecta(p1,p2) {
+            let r= ecuacionRecta(p1,p2);
+            ctx.beginPath();
+            ctx.moveTo(0,r.m*0+r.b); //que la recta se dibuje desde el pixel x=0 
+            ctx.lineTo(c.width,r.m*c.width+r.b); //hasta el último x=c.width
+            ctx.stroke();
+        }
+
+        function dibujarInterseccion(x,y) {
+            ctx.fillStyle="red"
+            ctx.beginPath();
+            ctx.arc(x,y, 6, 0, 2*Math.PI);
+            ctx.fill();
+            }
+
+        function ecuacionRecta(p1,p2){
+            let m=(p2.y-p1.y)/(p2.x-p1.x);
+            let b=p1.y-m*p1.x;
+            return {m,b}; 
+        }
+
+        function Interseccion(p1, p2, p3, p4) {
+            let r1=ecuacionRecta(p1,p2);
+            let r2=ecuacionRecta(p3,p4);
+
+          let valorx=(r2.b-r1.b)/(r1.m-r2.m); //resolviendo el sistema de ecuaciones de las dos ecuaciones
+          let valory = r1.m*valorx+r1.b;
+          return {x:valorx,y:valory};  
+
+            
+          /* UNO DE LOS INTENTOS FALLIDOS
+            Vamos a usar primero la librería math para obtener el numerador y el denominador del número decimal
+            let rm1=new Fraction(r1.m);
+            Y ahora vamos a definir la fracción con la librería algebra, para continuar trabajando con ella
+            let m1=new Fraction2(rm1.n,rm1.d);
+            let rb1=new Fraction(r1.b);
+            let b1=new Fraction2(rb1.n,rb1.d);
+            var expr1=new Expression("x");
+            expr1=expr1.multiply(m1);
+            expr1=expr1.add(b1);
+            
+            let fx = new Fraction(valorx);
+            let xval = new Fraction2(fx.n, fx.d);
+
+            var yval = expr1.eval({x: xval});
+            let valory=yval.number/yval.denom;
+            var valory=(m1.numer/m1.denom)*valorx+(b1.numer/b1.denom);*/    
+        }
+        
+    </script>
+</body>
+</html>

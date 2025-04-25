@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Matemáticas Dinámicas</title>
+<link rel="stylesheet" href="miestilo.css">
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        processEscapes: true
+      }
+    });
+    MathJax.Hub.Config({
+      TeX: {
+        Macros: {
+          R: "{\\mathbb R}",
+          N: "{\\mathbb N}",
+          Z: "{\\mathbb Z}",
+          bold: ["{\\bf #1}",1]
+        }
+      }
+    });
+    MathJax.Hub.Config({
+      TeX: { equationNumbers: { autoNumber: "AMS" } }
+    });
+    TeX: {
+      extensions: ["AMSmath.js", "AMSsymbols.js", "color.js"]
+    }
+</script>
+    
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.4/MathJax.js?config=TeX-AMS_HTML' async></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/9.5.1/math.min.js"></script>
+<script src="https://algebra.js.org/javascripts/algebra-0.2.6.min.js"></script>
+
+
+
+<body style="font-family:'Rubik', sans-serif; font-size:18; background: linear-gradient(to bottom, #D9735A, #F6D8C8); text-align:center;">
+    <h1>Teorema de Pitágoras</h1>
+    <h3>de Lorena Lucas Baños</h3>
+    A partir del siguiente triángulo rectángulo ABC, mueve los vértices B y C para dibujar cualquier triángulo rectángulo. 
+    Podrás comprobar que los $píxeles^2$ (es decir, el área) que ocupa el cuadrado de lado AB junto a los que ocupa el cuadrado de lado AC es igual a los $píxeles^2$ que llena el cuadrado de lado BC. Es decir que se cumple:
+    <br> $AB^2+AC^2=BC^2$; <br>o equivalentemente: <strong>$cateto_1^2+cateto_2^2=hipotenusa^2$</strong>.
+    <br>
+    <br>
+    <canvas id="canvas" width="1000" height="500" class="recuadro"   onmousedown="elegirpunto(event)" onmousemove="moverpunto(event)" onmouseup="nopunto(event)"></canvas>
+    <div id="areacuadrado"></div>  <!Aquí se mostrarán los resultados>
+    
+    <script>
+    var c=document.getElementById("canvas");
+    var ctx=c.getContext("2d");
+
+    //Definimos los vértices del triángulo
+    let A={x:400, y:300}; //Vértice del ángulo recto: este vértice no se mueve para asegurar que sea un triángulo rectángulo
+    let B={x:400, y:300-100}; //Vértice movible en eje Y
+    let C={x:400+150, y:300}; //Vértice movible en eje X
+
+    
+    //Función dibujar cualquiera de los tres cuadrados (juntamos las posibilidades de que el desplazamiento del vértice sea sobre la coordenada x o sobre la y)
+    function drawSquare(p1,p2,invertir=false,color){
+      let dx=p2.x-p1.x; 
+      let dy=p2.y-p1.y; //uno de estos dos será 0 y el otro será el lado del cuadrado
+        
+      if(invertir==true) { //dibujar el cuadrado al contrario (el de lado AC)
+         dx=-dx;
+         dy=-dy;
+       }
+
+      let p3={x:p1.x+dy, y:p1.y-dx}; //Si dy=0, encontes los vértices tendrán la misma coordenada "x" que antes y varía la coordenada "y" con el lado dx (y viceversa)
+      let p4={x:p2.x+dy, y:p2.y-dx};
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p4.x, p4.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fillStyle=color;
+      ctx.fill();
+    }
+
+
+    //Función dibujar todo
+    function draw(){
+      ctx.clearRect(0,0,c.width,c.height); //limpiar el canvas
+
+      //Triángulo
+      ctx.beginPath();
+      ctx.moveTo(A.x,A.y);
+      ctx.lineTo(B.x,B.y);
+      ctx.lineTo(C.x,C.y);
+      ctx.lineTo(A.x,A.y);
+      ctx.closePath();
+      ctx.strokeStyle="black";
+      ctx.stroke();
+
+      //Etiquetas
+      ctx.font = "16px Arial"; //predeterminado aparece muy pequeño
+      ctx.fillStyle="black"; 
+      ctx.fillText("A", A.x-15, A.y+15);
+      ctx.fillText("B", B.x-15, B.y-15);
+      ctx.fillText("C", C.x+15, C.y+15);
+       
+
+      //Cuadrado en AB (como sale)
+      drawSquare(A, B, false, "red");
+      //Cuadrado en AC (hacia abajo)
+      drawSquare(A, C, true, "green");
+      //Cuadrado en BC (como sale)
+      drawSquare(B, C, false, "purple");
+
+      //Actualizar valores para mostrar los resultados
+      let hipotenusa=Math.sqrt((A.y-B.y)**2+(C.x-A.x)**2);
+      let cateto1=A.y-B.y;
+      let cateto2=C.x-A.x;
+  
+      //Convertir el número a fracción con math.js (para opbtener el numerador y el denominador) y con eso conseguir la fracción en algebra.js para operar con ella
+      let frac=math.fraction(hipotenusa);
+      let hipot=new algebra.Fraction(frac.n, frac.d);
+      let frac1=math.fraction(cateto1);
+      let cat1=new algebra.Fraction(frac1.n, frac1.d);
+      let frac2=math.fraction(cateto2);
+      let cat2=new algebra.Fraction(frac2.n, frac2.d);
+
+      //Mostrar(se hace fuera del canva) las áreas de cada cuadrado
+      var dd=document.getElementById('areacuadrado'); //usar la función areacuadrado
+      dd.innerText="El cuadrado rojo tiene area "+areacuadrado(cat1)+". "+"\n" +
+            "El cuadrado verde tiene area "+areacuadrado(cat2)+". "+"\n" +
+            "El cuadrado rojo tiene area "+areacuadrado(hipot)+". "+"\n" +"\n"+
+            "Podemos comprobar que :" +areacuadrado(cat1)+ " + " +areacuadrado(cat2)+ " = "+areacuadrado(hipot)+", cumpliéndose así el Teorema de Pitágoras."
+    }
+        
+
+    function areacuadrado(lado){
+        var expr=algebra.parse("x^2"); //expresión que se va a valuar
+        var valor=expr.eval({x:lado}); //evaluar el lado en al expresión (se devuelven también otros datos)
+        var vv=valor.constants[0].valueOf(); //valor
+        return Math.round(vv); //redondear (sino "no se cumple el teorema")
+     }
+
+        
+    //Definimos una nueva variable que guarde el vértice que se debe mover
+    let puntoelegido=null;  
+    function elegirpunto(event){ 
+        var coordCanvas=c.getBoundingClientRect();
+        var x=event.clientX-coordCanvas.x;
+        var y=event.clientY-coordCanvas.y; //coordenadas al pinchar
+        //Como pulsar en el mismo pixel del vértice es muy dificil, vale con que se pinche CERCA del punto B o C:
+        if(Math.abs(x-B.x)<10 && Math.abs(y-B.y)<10){ //claramente las dos coordenadas deben estar cerca (&&) para que el punto esté cerca
+            puntoelegido="B";
+        }else if(Math.abs(x-C.x)<10 && Math.abs(y-C.y)<10){
+            puntoelegido="C";
+        }
+    }; 
+
+
+    //Definimos la función que mueve el punto elegido anteriormente 
+    function moverpunto(event){
+        if (puntoelegido){ //si el punto elegido no es null
+            var coordCanvas=c.getBoundingClientRect();
+            var x=event.clientX-coordCanvas.x;
+            var y=event.clientY-coordCanvas.y; //coordenadas al pinchar
+            //Según el punto que se elija, cambiaremos la coordenada correspondiente
+            if (puntoelegido == "B") {
+              B.y = y; //Si el punto es B, queremos que solo se mueva la coordenada Y para que siga siendo un triángulo rectángulo
+            }else if(puntoelegido == "C") {
+              C.x = x; //Si el punto es C, queremos que solo se mueva la coordenada X para que siga siendo un triángulo rectángulo
+            }
+        draw(); //y volver a dibujar todo
+        }
+    };
+
+        
+    //Finalmente, definimos otra función para cuando no se pulse, para que el punto elegido vuelva a ser null
+    function nopunto(event){
+        puntoelegido = null;
+    };
+
+        
+    //Para que al cargar la página y cuando no estemos pinchando ningún punto aparezca el dibujo, debemos cargar la función (a parte de dentro de moverpunto)
+    draw();  
+        
+</script>
+</body>
+</html>
+
